@@ -1,1 +1,1 @@
-# Model-Free, Fast Text2Video
+# Towards Real-Time Text2Video via CLIP-Guided, Pixel-Level Optimization

@@ -1,52 +1,8 @@
-import torch
-import numpy as np
-import datetime
 
-from utils import *
-from clip_loss import *
+import cog
 
-from beautifier import cyclegan_model
+device = None
 
-def load_generator_model(model_type, n=1, ngf=64, h=None, w=None, pretrained_model=None):
-
-    generate = lambda g, z : g(z)
-
-    if model_type == 'cyclegan':
-        z = torch.rand((n, 3, h, w), device=device)
-        gen = cyclegan_model.netG_A
-        generate = lambda g, z : (g(z)+ 1)/2
-    else:
-        class Nothin(nn.Module):
-            def __init__(self):
-                super(Nothin, self).__init__()
-            def forward(self, z):
-                return z
-        gen = Nothin()
-        z = torch.rand((n, 3, h, w), device=device)
-        generate = lambda g, z : g(z)
-
-    # for param in gen.parameters():
-    #     param.requires_grad = True
-    # gen.train()
-
-    z.requires_grad = True
-
-    for param in gen.parameters():
-        param.requires_grad = False
-    gen.eval()
-
-    return gen, z, generate
-
-
-# Image Augmentation Transformation
-augment_trans, augment_trans_style, augment_change_clip = get_image_augmentation(True)
-
-def alter_z_noise(z, squish=4, noise_std=1.):
-    # Alter the params so the next image isn't exactly like the previous.
-    with torch.no_grad():
-        z /= squish
-        z += torch.randn(z.shape).to(device) * noise_std
-    return z
 
 def generate_video( prompts, # List of text prompts to use to generate media
                     h=9*40,w=16*40,
@@ -234,17 +190,36 @@ def generate_video_wrapper(prompts, frames_per_prompt=10, style_opt_iter=0, temp
                     n_samples=1)
     return all_canvases
 
-if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser(
-        description='Paint each frame of a video, and generate instruction files needed for robot painter.')
 
-    # parser.add_argument("file", type=str, help='Path of the video or image to paint.')
-    parser.add_argument('--prompts', nargs='+', type=str, help='')
-    parser.add_argument('--temperature', type=float, default=30)
-    parser.add_argument('--slow', action="store_true")
+class Predictor(cog.Predictor):
+    def setup(self):
+        global device
+        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-    args = parser.parse_args()
+        # Load the model
+        # model, preprocess = clip.load('ViT-B/32', device, jit=False)
 
-    all_canvases = generate_video_wrapper(args.prompts, frames_per_prompt=20,
-        temperature=args.temperature, fast=not args.slow)
+        # extractor = Vgg16_Extractor(space="normal").to(device)
+        from text2video import *
+
+
+    @cog.input("prompts", type=str, default="prompt 1&prompt 2",
+               help="Text descriptions separated by &")
+    #@cog.input("style_image", type=Path, help="Style Image")
+    @cog.input("temperature", type=float, default=30, help="How much frame-to-frame changes. 100 = tons. 0 = barely.")
+    # @cog.input("num_iterations", type=int, default=500, help="Number of optimization iterations")
+    # @cog.input("style_strength", type=int, default=50, help="How strong the style should be. 100 (max) is a lot. 0 (min) is no style.")
+    def predict(self, prompts, temperature):
+        """Run a single prediction on the model"""
+        assert isinstance(temperature, float) and temperature > 0, 'temperature should be a positive float'
+        assert isinstance(style_strength, int) and style_strength >= 0 and style_strength <= 100, \
+                'style_strength should be a positive integer less than 100'
+        # assert style_image is not None, 'style_image must be specified'
+        prompts = prompts.split('&')
+        assert prompts is not None and len(prompts) > 0, 'prompts must be specified'
+
+        for path in generate_video_wrapper(prompts, frames_per_prompt=20,
+                temperature=temperature, fast=True):
+            yield path
+
+        return path

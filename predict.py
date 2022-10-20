@@ -1,8 +1,22 @@
 
 import cog
+from pathlib import Path
+import tempfile
 
 device = None
 
+
+
+def save_img(img, file_name):
+    img = np.transpose(img.detach().cpu().numpy()[0], (1, 2, 0))
+    img = np.clip(img, 0, 1)
+    img = np.uint8(img * 254)
+    pimg = PIL.Image.fromarray(img, mode="RGB")
+    pimg.save(file_name)
+
+def checkin(img, out_path=None):
+    save_img(img, str(out_path))
+    return out_path
 
 def generate_video( prompts, # List of text prompts to use to generate media
                     h=9*40,w=16*40,
@@ -18,7 +32,7 @@ def generate_video( prompts, # List of text prompts to use to generate media
                     carry_over_iter=17, # Which iteration of optimization to use as the start of the next frame
                     encoding_comparison='cosine', # or "emd"
                     n_samples=1):
-
+    out_path = Path(tempfile.mkdtemp()) / "out.png"
     start_time, all_canvases = time(), []
     all_latents = []
 
@@ -148,6 +162,8 @@ def generate_video( prompts, # List of text prompts to use to generate media
                 else:
                     img = generate(gen, z).detach().cpu().numpy()[0]
                 img = draw_text_on_image(img, prompt_now)
+                yield checkin(img, str(out_path))
+
                 all_canvases.append(img)
                 all_latents.append(z.detach().cpu().numpy()[0])
                 # if frame % 4 == 0: print('Frame: ', frame), show_img(img)
@@ -158,13 +174,14 @@ def generate_video( prompts, # List of text prompts to use to generate media
     # display(ipython_img)
 
     # to_gif(all_canvases, fn='/content/drive/MyDrive/animations/{}.gif'.format(time()))
-    if not os.path.exists('output'): os.mkdir('output')
+    # if not os.path.exists('output'): os.mkdir('output')
 
-    run_name = datetime.now().strftime("%m_%d__%H_%M_%S")
-    fn = os.path.join('output','{}.mp4'.format(run_name))
-    to_video(all_canvases, frame_rate=8, fn=fn)
+    # run_name = datetime.now().strftime("%m_%d__%H_%M_%S")
+    # fn = os.path.join('output','{}.mp4'.format(run_name))
+    to_video(all_canvases, frame_rate=8, fn=outpath)
+
     # to_video(all_canvases, frame_rate=8)
-    return all_canvases, all_latents
+    return outpath#all_canvases, all_latents
 
 #@title generate_video_wrapper
 def generate_video_wrapper(prompts, frames_per_prompt=10, style_opt_iter=0, temperature=50, fast=False):
@@ -176,7 +193,8 @@ def generate_video_wrapper(prompts, frames_per_prompt=10, style_opt_iter=0, temp
     z_unchanging_weight = 4 - (temperature/100) * 4
     z_noise_squish = (temperature/100) * 4 + 2
 
-    all_canvases, fn = generate_video( prompts, # List of text prompts to use to generate media
+    # all_canvases, fn =
+    for path in generate_video( prompts, # List of text prompts to use to generate media
                     h=h,w=w,
                     lr=lr,
                     num_augs=4,
@@ -188,7 +206,8 @@ def generate_video_wrapper(prompts, frames_per_prompt=10, style_opt_iter=0, temp
                     z_unchanging_weight=z_unchanging_weight, # Weight to ensure z does not change at all * l1_loss(z, z_prev)
                     z_noise_squish=z_noise_squish, # Amount to squish z by between frames
                     n_samples=1)
-    return all_canvases
+            yield path
+    return path
 
 
 class Predictor(cog.Predictor):

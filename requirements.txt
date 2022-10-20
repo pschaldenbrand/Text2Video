@@ -1,0 +1,6 @@
+ftfy
+regex
+tqdm
+pytorch-lightning
+omegaconf
+git+https://github.com/openai/CLIP.git

@@ -9,7 +9,7 @@ build:
     - "torch==1.12.1"
     - "torchvision==0.13.1"
     - "numpy==1.21.6"
-    - "Pillow==8.3.1"
+    - "Pillow==7.1.2"
     - "ftfy==6.0.3"
     - "regex==2021.8.28"
     - "tqdm==4.62.3"

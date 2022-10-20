@@ -5,7 +5,7 @@ import tempfile
 
 device = None
 
-
+from text2video import *
 
 def save_img(img, file_name):
     img = np.transpose(img.detach().cpu().numpy()[0], (1, 2, 0))
@@ -205,7 +205,7 @@ def generate_video_wrapper(prompts, frames_per_prompt=10, style_opt_iter=0, temp
                     carry_over_iter=carry_over_iter,
                     z_unchanging_weight=z_unchanging_weight, # Weight to ensure z does not change at all * l1_loss(z, z_prev)
                     z_noise_squish=z_noise_squish, # Amount to squish z by between frames
-                    n_samples=1)
+                    n_samples=1):
             yield path
     return path
 
@@ -219,7 +219,7 @@ class Predictor(cog.Predictor):
         # model, preprocess = clip.load('ViT-B/32', device, jit=False)
 
         # extractor = Vgg16_Extractor(space="normal").to(device)
-        from text2video import *
+
 
 
     @cog.input("prompts", type=str, default="prompt 1&prompt 2",

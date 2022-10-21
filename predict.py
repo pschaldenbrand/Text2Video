@@ -1,6 +1,7 @@
 
 import cog
-from pathlib import Path
+from cog import BasePredictor, Path, Input
+# from pathlib import Path
 import tempfile
 
 device = None
@@ -32,6 +33,7 @@ def generate_video( prompts, # List of text prompts to use to generate media
                     carry_over_iter=17, # Which iteration of optimization to use as the start of the next frame
                     encoding_comparison='cosine', # or "emd"
                     n_samples=1):
+    print('testing')
     out_path = Path(tempfile.mkdtemp()) / "out.png"
     start_time, all_canvases = time(), []
     all_latents = []
@@ -52,6 +54,7 @@ def generate_video( prompts, # List of text prompts to use to generate media
     l1_loss = nn.L1Loss()
 
     for prompt_ind in range(len(prompts)):
+        print(prompt_now)
         prompt_now  = prompts[prompt_ind]
         prompt_next = prompts[prompt_ind+1] if prompt_ind < len(prompts)-1 else None
 
@@ -193,6 +196,7 @@ def generate_video_wrapper(prompts, frames_per_prompt=10, style_opt_iter=0, temp
     z_unchanging_weight = 4 - (temperature/100) * 4
     z_noise_squish = (temperature/100) * 4 + 2
 
+    print('in wrapper')
     # all_canvases, fn =
     for path in generate_video( prompts, # List of text prompts to use to generate media
                     h=h,w=w,
@@ -206,11 +210,11 @@ def generate_video_wrapper(prompts, frames_per_prompt=10, style_opt_iter=0, temp
                     z_unchanging_weight=z_unchanging_weight, # Weight to ensure z does not change at all * l1_loss(z, z_prev)
                     z_noise_squish=z_noise_squish, # Amount to squish z by between frames
                     n_samples=1):
-            yield path
-    return path
+            yield Path(path)
+    return Path(path)
 
 
-class Predictor(cog.Predictor):
+class Predictor(BasePredictor):
     def setup(self):
         global device
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -222,23 +226,30 @@ class Predictor(cog.Predictor):
 
 
 
-    @cog.input("prompts", type=str, default="prompt 1&prompt 2",
-               help="Text descriptions separated by &")
+    # @cog.input("prompts", type=str, default="prompt 1&prompt 2",
+               # help="Text descriptions separated by &")
     #@cog.input("style_image", type=Path, help="Style Image")
-    @cog.input("temperature", type=float, default=30, help="How much frame-to-frame changes. 100 = tons. 0 = barely.")
+    # @cog.input("temperature", type=float, default=30, help="How much frame-to-frame changes. 100 = tons. 0 = barely.")
     # @cog.input("num_iterations", type=int, default=500, help="Number of optimization iterations")
     # @cog.input("style_strength", type=int, default=50, help="How strong the style should be. 100 (max) is a lot. 0 (min) is no style.")
-    def predict(self, prompts, temperature):
+    # def predict(self, prompts, temperature):
+
+    def predict(self,
+                prompts: str = Input(description="Text descriptions separated by &"),
+                temperature: float = Input(default=30, description="How much frame-to-frame changes. 100 = tons. 0 = barely.")) -> Path:
         """Run a single prediction on the model"""
+        print(1)
         assert isinstance(temperature, float) and temperature > 0, 'temperature should be a positive float'
-        assert isinstance(style_strength, int) and style_strength >= 0 and style_strength <= 100, \
-                'style_strength should be a positive integer less than 100'
+        # assert isinstance(style_strength, int) and style_strength >= 0 and style_strength <= 100, \
+        #         'style_strength should be a positive integer less than 100'
         # assert style_image is not None, 'style_image must be specified'
         prompts = prompts.split('&')
         assert prompts is not None and len(prompts) > 0, 'prompts must be specified'
+        print(prompts)
 
         for path in generate_video_wrapper(prompts, frames_per_prompt=20,
                 temperature=temperature, fast=True):
+            print('loop')
             yield path
 
         return path

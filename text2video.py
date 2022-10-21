@@ -1,6 +1,9 @@
 import torch
 import numpy as np
 import datetime
+from tqdm import tqdm
+import torch
+import torch.nn as nn
 
 from utils import *
 from clip_loss import *
@@ -221,10 +224,10 @@ def generate_video_wrapper(prompts, frames_per_prompt=10, style_opt_iter=0, temp
     z_noise_squish = (temperature/100) * 4 + 2
 
     all_canvases, fn = generate_video( prompts, # List of text prompts to use to generate media
-                    h=h,w=w,
+                    # h=h,w=w,
                     lr=lr,
                     num_augs=4,
-                    debug=False, display_prompt=display_prompt,
+                    debug=False,
                     frames_per_prompt=frames_per_prompt, # Number of frames to dedicate to each prompt
                     first_iter=50, # Number of optimization iterations for first first frame
                     num_iter=num_iter, # Optimization iterations for all but first frame

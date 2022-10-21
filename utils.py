@@ -2,43 +2,20 @@
 
 import os
 import io
-import PIL.Image, PIL.ImageDraw
-import base64
-import zipfile
-import json
-import requests
-import numpy as np
-import matplotlib.pylab as pl
-import glob
-from datetime import datetime
-# from tqdm import tqdm_notebook as tqdm
-# from IPython.display import Image, HTML, clear_output
-# from tqdm import tqdm_notebook, tnrange
-from tqdm import tqdm
-from omegaconf import OmegaConf
-
-# os.environ['FFMPEG_BINARY'] = 'ffmpeg'
-# import moviepy.editor as mvp
-# from moviepy.video.io.ffmpeg_writer import FFMPEG_VideoWriter
-import torch
-import skimage
-import skimage.io
-import random
-import argparse
-import math
-import torchvision
-import torchvision.transforms as transforms
-import requests
-from io import BytesIO
-
-import torch.nn as nn
-import torch.nn.functional as F
-import torchvision.models as models
 import PIL
+import PIL.Image, PIL.ImageDraw
+# import base64
+import numpy as np
+from datetime import datetime
+
+# import torch
+# import requests
+# from io import BytesIO
+
 from time import time
 import cv2
 
-device = torch.device('cuda')
+# device = torch.device('cuda')
 
 def draw_text_on_image(img, text):
     img = img.transpose((1,2,0))

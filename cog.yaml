@@ -1,10 +1,7 @@
 build:
   gpu: true
   cuda: "11.2"
-  python_version: "3.7"
-  system_packages:
-    - "libgl1-mesa-glx"
-    - "libglib2.0-0"
+  python_version: "3.8"
   python_packages:
     - "torch==1.12.1"
     - "torchvision==0.13.1"
@@ -13,6 +10,8 @@ build:
     - "ftfy==6.0.3"
     - "regex==2021.8.28"
     - "tqdm==4.62.3"
+    - "matplotlib==3.3.4"
+    - "opencv-python==4.2.0.32"
   run:
     - pip install git+https://github.com/openai/CLIP.git --no-deps
 predict: "predict.py:Predictor"

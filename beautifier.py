@@ -5,7 +5,7 @@ import os
 import sys
 import torch
 
-sys.path.append('pytorch-CycleGAN-and-pix2pix')
+# sys.path.append('pytorch-CycleGAN-and-pix2pix')
 import models
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -110,5 +110,6 @@ for name in cyclegan_model.model_names:
             if not os.path.exists(save_path):
                 #!wget -O cyclegan_generator.pth https://dl.boxcloud.com/d/1/b1!NNM62Iu7CAUniqipvBqxuFBwgzqaXUC50EIiSclFKWmfIgKp-LtxUp_YUqiz27LnKk005brY-D7GQjDD6R2JDkDB-jnMJ-50QMdn__dRkNeQCIpT8BXyawLJyNhv0vab0Mc2PjKjPSb2jASASijPqEDJ1Rq09ff2MikKVBjekuaGt_c1k23gMlEr2YkRTsvOUYv1k6HSfUApa_3ZCJbzRqbzUEOMOl_2phJv0orv36UF4dr0lojNsVp8fcVrFkyaZcEfGJI4eBPAxM18UnZ_7ellnX7GpLAA709rczmOBp23xrqIR7feCs-JrsBnMA7n1HOkaLQhH80plhmYt2fViRhGqdYrO4D9SQVIKWHTNdy5eiofKGNkCqoVD0yUHB-oC_FsFkJ2MtzMNQlg_jwTYhSUylbj7OPxFFZfHt9Z_4oeh2x1S8F6AFtmalgDnQYwPEGVIQMNhBr-MZEVEur9yHFOBF2NnYXrthHdNuV36sIIuxTJg_YmXlLOc5Wr4Ac9VyrIiOVsoIRT7uK4Rm3jSRvy6-0BoFN85omCP03LFAxrdzcFmRcS6D1j534-HYDoLYiLHHXY8-gf5xRPvFh9TSEM4-PMzilIWxAJOvBa_-oJ4JsNiUZbZOejCHiJL459Zgc7IU_MCcAvWtoNm3n06HjM9_MzxbGKOM_0xQ1kvr0i4rtqLNL6-NKmUBMTDe5Hgk8QAZ2dX3NamzQCI0eesCjOIDEXEB_wJHrZXSG3alh3qcqRrLUa2tBeLA-4o3SIZMg4H99GL76_g9ggb4gvEdcPnrF5TzU9el5enf2QjahxY9BmpvoAeBgTsbHm3RmGr8lSRR21K3WGsRkA0lfr2uhZnYk5NSSRzlW7FquvUV2hQLNRGaLmFXFL2i9rTQlA4dtOhyR4alazzboLTx5IGnwvw3yqcFu5rbGNPaQqpWQInV9Uf6hhpSEdB1bO_G_h0cegNJz-JWO9Nvn_wL-PDZ2vUZwopLzA09WG_9qpgTGf0ogJl345thnno1ydXr58Y-ZGu44a3lkLC0HtBRniz35AIeT9DymTzfSGYkaZ4pkxWbLviy7YEkfmHWyg_f0kZm7DSQqJPq4x5-cqouBwTvXMZYEFLRnwflfmXnHSGMO1UrjMWfRAGxsg1ncXE7nLHPKQaoMVsx3gu_0cGkWxr1_3T50vYK1j1rz07u7xlKTmnv59lhKGdoUdFZAEQG4myMcedzZF31B5A4AgkM6Y7knLOz8mORKH_R41IdPhAtJyVVsNev0daSywTHkHMqCIOkA9aoVGYXU8iSPiiIc0XzF1FQaN38jiE23Z6ppM4nNUgoeiAghKet5t-JolWJ3u0UG0VNJuA7pubik_zxAHkMh34G1Bd3k--hfc-Sfg_lcqcu5KXGBQdpKb5HYyrGVQpjGvNXoruQtRPA../download
                 #!curl -L   https://cmu.box.com/shared/static/lxgfgfw9aqia8crfyg5jw0h1gkdv64mk --output cyclegan_generator.pth
+                print('downloading model')
                 urllib.request.urlretrieve("https://cmu.box.com/shared/static/lxgfgfw9aqia8crfyg5jw0h1gkdv64mk", save_path)
             net.load_state_dict(torch.load(save_path))

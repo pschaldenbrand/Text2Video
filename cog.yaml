@@ -14,4 +14,6 @@ build:
     - "opencv-python==4.2.0.32"
   run:
     - pip install git+https://github.com/openai/CLIP.git --no-deps
+    - apt update -y && apt-get install ffmpeg -y
+    - apt update -y && apt-get install -y fonts-humor-sans
 predict: "predict.py:Predictor"

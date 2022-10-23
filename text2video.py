@@ -48,7 +48,9 @@ def alter_z_noise(z, squish=4, noise_std=1.):
     # Alter the params so the next image isn't exactly like the previous.
     with torch.no_grad():
         z /= squish
-        z += torch.randn(z.shape).to(device) * noise_std
+        #z += torch.rand(z.shape).to(device) * noise_std
+        noise = torch.rand(z.shape).to(device)#.clamp(-.2,.5)
+        z += noise * noise_std
     return z
 
 def generate_video( prompts, # List of text prompts to use to generate media

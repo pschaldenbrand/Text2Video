@@ -1,17 +1,27 @@
+##########################################################
+#################### Copyright 2022 ######################
+################ by Peter Schaldenbrand ##################
+### The Robotics Institute, Carnegie Mellon University ###
+################ All rights reserved. ####################
+##########################################################
+
+from typing import Iterator
+import shutil
+import sys
+from subprocess import call
+import tempfile
 
 import cog
 from cog import BasePredictor, Path, Input
-# from pathlib import Path
-import tempfile
 
 device = None
 
 from text2video import *
 
 def save_img(img, file_name):
-    img = np.transpose(img.detach().cpu().numpy()[0], (1, 2, 0))
-    img = np.clip(img, 0, 1)
-    img = np.uint8(img * 254)
+    # img = np.transpose(img.detach().cpu().numpy()[0], (1, 2, 0))
+    # img = np.clip(img, 0, 1)
+    # img = np.uint8(img * 254)
     pimg = PIL.Image.fromarray(img, mode="RGB")
     pimg.save(file_name)
 
@@ -33,10 +43,14 @@ def generate_video( prompts, # List of text prompts to use to generate media
                     carry_over_iter=17, # Which iteration of optimization to use as the start of the next frame
                     encoding_comparison='cosine', # or "emd"
                     n_samples=1):
-    print('testing')
     out_path = Path(tempfile.mkdtemp()) / "out.png"
     start_time, all_canvases = time(), []
     all_latents = []
+
+    outdir = "cog_out"
+    if os.path.exists(outdir):
+        shutil.rmtree(outdir)
+    os.makedirs(outdir)
 
     gen, z_for_next_frame, generate = load_generator_model(model_type, n=n_samples, ngf=666, h=h, w=w, pretrained_model=None)
 
@@ -54,7 +68,6 @@ def generate_video( prompts, # List of text prompts to use to generate media
     l1_loss = nn.L1Loss()
 
     for prompt_ind in range(len(prompts)):
-        print(prompt_now)
         prompt_now  = prompts[prompt_ind]
         prompt_next = prompts[prompt_ind+1] if prompt_ind < len(prompts)-1 else None
 
@@ -165,29 +178,46 @@ def generate_video( prompts, # List of text prompts to use to generate media
                 else:
                     img = generate(gen, z).detach().cpu().numpy()[0]
                 img = draw_text_on_image(img, prompt_now)
-                yield checkin(img, str(out_path))
+
+                im = np.transpose(img, (1, 2, 0))
+                im = np.clip(im, 0, 1)
+                im = np.uint8(im * 254)
+                pimg = PIL.Image.fromarray(im, mode="RGB")
+                fn = os.path.join(outdir, "frame%06d.jpg" % frame)
+                pimg.save(fn)
+                # if frame % 4 == 0: yield checkin(img, str(out_path))
+                if frame % 5 == 0: yield fn
 
                 all_canvases.append(img)
                 all_latents.append(z.detach().cpu().numpy()[0])
-                # if frame % 4 == 0: print('Frame: ', frame), show_img(img)
 
-    # to_gif(all_canvases, fn='/animation.gif')
-    # from IPython.display import Image, display
-    # ipython_img = Image(open('/animation.gif','rb').read())
-    # display(ipython_img)
+    video_path = to_video(outdir)
 
-    # to_gif(all_canvases, fn='/content/drive/MyDrive/animations/{}.gif'.format(time()))
-    # if not os.path.exists('output'): os.mkdir('output')
+    yield video_path
 
-    # run_name = datetime.now().strftime("%m_%d__%H_%M_%S")
-    # fn = os.path.join('output','{}.mp4'.format(run_name))
-    to_video(all_canvases, frame_rate=8, fn=outpath)
+def to_video(outdir, fps=8):
+    # https://github.com/chenxwh/stable-diffusion-videos/blob/replicate/predict.py
+    image_path = os.path.join(outdir, "frame%06d.jpg")
+    video_path = os.path.join(outdir, "out.mp4")#f"/tmp/out.mp4"
 
-    # to_video(all_canvases, frame_rate=8)
-    return outpath#all_canvases, all_latents
+    cmdd = (
+        "ffmpeg -y -r "
+        + str(fps)
+        + " -i "
+        + image_path
+        + " -vcodec libx264 -crf 25  -pix_fmt yuv420p "
+        + video_path
+    )
+
+    try:
+        call(cmdd, shell=True)
+    except:
+        print("Process interrupted")
+        sys.exit(1)
+    return video_path
 
 #@title generate_video_wrapper
-def generate_video_wrapper(prompts, frames_per_prompt=10, style_opt_iter=0, temperature=50, fast=False):
+def generate_video_wrapper(prompts, h=360, w=640, frames_per_prompt=10, style_opt_iter=0, temperature=50, fast=False):
     lr = .17 if fast else .1
     num_iter = 10 if fast else 25
     carry_over_iter = 9 if fast else 13
@@ -196,13 +226,12 @@ def generate_video_wrapper(prompts, frames_per_prompt=10, style_opt_iter=0, temp
     z_unchanging_weight = 4 - (temperature/100) * 4
     z_noise_squish = (temperature/100) * 4 + 2
 
-    print('in wrapper')
     # all_canvases, fn =
     for path in generate_video( prompts, # List of text prompts to use to generate media
                     h=h,w=w,
                     lr=lr,
                     num_augs=4,
-                    debug=False, display_prompt=display_prompt,
+                    debug=False, #display_prompt=display_prompt,
                     frames_per_prompt=frames_per_prompt, # Number of frames to dedicate to each prompt
                     first_iter=50, # Number of optimization iterations for first first frame
                     num_iter=num_iter, # Optimization iterations for all but first frame
@@ -211,7 +240,7 @@ def generate_video_wrapper(prompts, frames_per_prompt=10, style_opt_iter=0, temp
                     z_noise_squish=z_noise_squish, # Amount to squish z by between frames
                     n_samples=1):
             yield Path(path)
-    return Path(path)
+    yield Path(path)
 
 
 class Predictor(BasePredictor):
@@ -219,37 +248,25 @@ class Predictor(BasePredictor):
         global device
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-        # Load the model
-        # model, preprocess = clip.load('ViT-B/32', device, jit=False)
-
-        # extractor = Vgg16_Extractor(space="normal").to(device)
-
-
-
-    # @cog.input("prompts", type=str, default="prompt 1&prompt 2",
-               # help="Text descriptions separated by &")
-    #@cog.input("style_image", type=Path, help="Style Image")
-    # @cog.input("temperature", type=float, default=30, help="How much frame-to-frame changes. 100 = tons. 0 = barely.")
-    # @cog.input("num_iterations", type=int, default=500, help="Number of optimization iterations")
-    # @cog.input("style_strength", type=int, default=50, help="How strong the style should be. 100 (max) is a lot. 0 (min) is no style.")
-    # def predict(self, prompts, temperature):
 
     def predict(self,
                 prompts: str = Input(description="Text descriptions separated by &"),
-                temperature: float = Input(default=30, description="How much frame-to-frame changes. 100 = tons. 0 = barely.")) -> Path:
+                temperature: float = Input(default=30.0, description="How much frame-to-frame changes. 100 = tons. 0 = barely."),
+                width: int = Input(default=640, description="Video width in pixels"),
+                height: int = Input(default=360, description="Video height in pixels"),
+                frames_per_promt: int = Input(default=20, description="How many video frames to dedicate to each given prompt."),
+                frame_rate: int = Input(default=8, description="Frames per second of output video"),
+                fast: bool = Input(default=True, description="Faster video generation at the cost of some quality")
+                ) -> Iterator[Path]:
         """Run a single prediction on the model"""
-        print(1)
-        assert isinstance(temperature, float) and temperature > 0, 'temperature should be a positive float'
-        # assert isinstance(style_strength, int) and style_strength >= 0 and style_strength <= 100, \
-        #         'style_strength should be a positive integer less than 100'
-        # assert style_image is not None, 'style_image must be specified'
+        assert (isinstance(temperature, float) or isinstance(temperature, int)) and temperature > 0, 'temperature should be a positive float'
         prompts = prompts.split('&')
         assert prompts is not None and len(prompts) > 0, 'prompts must be specified'
-        print(prompts)
 
-        for path in generate_video_wrapper(prompts, frames_per_prompt=20,
-                temperature=temperature, fast=True):
-            print('loop')
+        for path in generate_video_wrapper(prompts, frames_per_prompt=frames_per_promt,
+                w=width, h=height,
+                temperature=temperature, fast=fast):
             yield path
-
+        # print(path)
         return path
+        # yield path

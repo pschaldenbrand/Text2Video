@@ -1,11 +1,10 @@
-
+# CycleGAN implementation from Jun-Yan Zhu  https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix
 import argparse
 import urllib.request
 import os
 import sys
 import torch
 
-# sys.path.append('pytorch-CycleGAN-and-pix2pix')
 import models
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)

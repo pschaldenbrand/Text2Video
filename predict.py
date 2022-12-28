@@ -66,6 +66,7 @@ def generate_video( prompts, # List of text prompts to use to generate media
     cosine_dist = lambda a, b: -1 * torch.cosine_similarity(a, b, dim=1)
     encoding_compare = cosine_dist if encoding_comparison == 'cosine' else EMD
     l1_loss = nn.L1Loss()
+    count = 0
 
     for prompt_ind in range(len(prompts)):
         prompt_now  = prompts[prompt_ind]
@@ -183,13 +184,14 @@ def generate_video( prompts, # List of text prompts to use to generate media
                 im = np.clip(im, 0, 1)
                 im = np.uint8(im * 254)
                 pimg = PIL.Image.fromarray(im, mode="RGB")
-                fn = os.path.join(outdir, "frame%06d.jpg" % frame)
+                fn = os.path.join(outdir, "frame%06d.jpg" % count)
                 pimg.save(fn)
                 # if frame % 4 == 0: yield checkin(img, str(out_path))
-                if frame % 5 == 0: yield fn
+                if count % 5 == 0: yield fn
 
                 all_canvases.append(img)
                 all_latents.append(z.detach().cpu().numpy()[0])
+            count += 1
 
     video_path = to_video(outdir)
 
@@ -233,7 +235,7 @@ def generate_video_wrapper(prompts, h=360, w=640, frames_per_prompt=10, style_op
                     num_augs=4,
                     debug=False, #display_prompt=display_prompt,
                     frames_per_prompt=frames_per_prompt, # Number of frames to dedicate to each prompt
-                    first_iter=50, # Number of optimization iterations for first first frame
+                    first_iter=100, # Number of optimization iterations for first first frame
                     num_iter=num_iter, # Optimization iterations for all but first frame
                     carry_over_iter=carry_over_iter,
                     z_unchanging_weight=z_unchanging_weight, # Weight to ensure z does not change at all * l1_loss(z, z_prev)
@@ -254,7 +256,7 @@ class Predictor(BasePredictor):
                 temperature: float = Input(default=30.0, description="How much frame-to-frame changes. 100 = tons. 0 = barely."),
                 width: int = Input(default=640, description="Video width in pixels"),
                 height: int = Input(default=360, description="Video height in pixels"),
-                frames_per_promt: int = Input(default=20, description="How many video frames to dedicate to each given prompt."),
+                frames_per_prompt: int = Input(default=20, description="How many video frames to dedicate to each given prompt."),
                 frame_rate: int = Input(default=8, description="Frames per second of output video"),
                 fast: bool = Input(default=True, description="Faster video generation at the cost of some quality")
                 ) -> Iterator[Path]:

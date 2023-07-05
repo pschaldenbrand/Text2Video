@@ -1,10 +1,8 @@
 build:
   gpu: true
-  cuda: "11.2"
+  cuda: "11.8"
   python_version: "3.8"
   python_packages:
-    - "torch==1.12.1"
-    - "torchvision==0.13.1"
     - "numpy==1.21.6"
     - "Pillow==7.1.2"
     - "ftfy==6.0.3"
@@ -13,7 +11,9 @@ build:
     - "matplotlib==3.3.4"
     - "opencv-python==4.2.0.32"
   run:
+    - pip install torch==2.0.0+cu118 torchvision==0.15.1+cu118 torchaudio==2.0.1 --index-url https://download.pytorch.org/whl/cu118
     - pip install git+https://github.com/openai/CLIP.git --no-deps
     - apt update -y && apt-get install ffmpeg -y
     - apt update -y && apt-get install -y fonts-humor-sans
+    - apt update -y && apt-get install libsm6 libxrender1 libfontconfig1 -y
 predict: "predict.py:Predictor"

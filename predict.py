@@ -33,6 +33,7 @@ def generate_video( prompts, # List of text prompts to use to generate media
                     h=9*40,w=16*40,
                     lr=.1,
                     num_augs=4,
+                    draw_text_on_image=False,
                     model_type='cyclegan',
                     debug=True,
                     frames_per_prompt=10, # Number of frames to dedicate to each prompt
@@ -178,7 +179,8 @@ def generate_video( prompts, # List of text prompts to use to generate media
                     # show_img(z.detach().cpu().numpy()[0])
                 else:
                     img = generate(gen, z).detach().cpu().numpy()[0]
-                img = draw_text_on_image(img, prompt_now)
+                if draw_text_on_image:
+                    img = draw_text_on_image(img, prompt_now)
 
                 im = np.transpose(img, (1, 2, 0))
                 im = np.clip(im, 0, 1)
@@ -219,7 +221,7 @@ def to_video(outdir, fps=8):
     return video_path
 
 #@title generate_video_wrapper
-def generate_video_wrapper(prompts, h=360, w=640, frames_per_prompt=10, style_opt_iter=0, temperature=50, fast=False):
+def generate_video_wrapper(prompts, h=360, w=640, frames_per_prompt=10, style_opt_iter=0, temperature=50, fast=False, draw_text_on_image=False):
     lr = .17 if fast else .1
     num_iter = 10 if fast else 25
     carry_over_iter = 9 if fast else 13
@@ -233,7 +235,7 @@ def generate_video_wrapper(prompts, h=360, w=640, frames_per_prompt=10, style_op
                     h=h,w=w,
                     lr=lr,
                     num_augs=4,
-                    debug=False, #display_prompt=display_prompt,
+                    debug=False, draw_text_on_image=draw_text_on_image,
                     frames_per_prompt=frames_per_prompt, # Number of frames to dedicate to each prompt
                     first_iter=100, # Number of optimization iterations for first first frame
                     num_iter=num_iter, # Optimization iterations for all but first frame
@@ -258,7 +260,8 @@ class Predictor(BasePredictor):
                 height: int = Input(default=360, description="Video height in pixels"),
                 frames_per_prompt: int = Input(default=20, description="How many video frames to dedicate to each given prompt."),
                 frame_rate: int = Input(default=8, description="Frames per second of output video"),
-                fast: bool = Input(default=True, description="Faster video generation at the cost of some quality")
+                fast: bool = Input(default=True, description="Faster video generation at the cost of some quality"),
+                draw_text_on_image: bool = Input(default=True, description="Overlay the prompt used to generate the frame over the frame")
                 ) -> Iterator[Path]:
         """Run a single prediction on the model"""
         assert (isinstance(temperature, float) or isinstance(temperature, int)) and temperature > 0, 'temperature should be a positive float'
@@ -267,6 +270,7 @@ class Predictor(BasePredictor):
 
         for path in generate_video_wrapper(prompts, frames_per_prompt=frames_per_promt,
                 w=width, h=height,
+                draw_text_on_image=draw_text_on_image,
                 temperature=temperature, fast=fast):
             yield path
         # print(path)
